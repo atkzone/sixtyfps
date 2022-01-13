@@ -17,7 +17,9 @@ use corelib::graphics::*;
 use corelib::input::KeyboardModifiers;
 use corelib::items::{ItemRef, MouseCursor};
 use corelib::layout::Orientation;
-use corelib::window::{PlatformWindow, PopupWindow, PopupWindowLocation};
+use corelib::window::{
+    PlatformWindow, PopupWindow, PopupWindowLocation, RenderingNotifier, RenderingState,
+};
 use corelib::Property;
 use sixtyfps_corelib as corelib;
 use winit::dpi::LogicalSize;
@@ -40,6 +42,8 @@ pub struct GLWindow {
 
     #[cfg(target_arch = "wasm32")]
     canvas_id: String,
+
+    rendering_notifier: RefCell<Option<Box<dyn RenderingNotifier>>>,
 }
 
 impl GLWindow {
@@ -63,6 +67,7 @@ impl GLWindow {
             fps_counter: FPSCounter::new(),
             #[cfg(target_arch = "wasm32")]
             canvas_id,
+            rendering_notifier: Default::default(),
         })
     }
 
@@ -108,6 +113,18 @@ impl GLWindow {
     pub fn default_font_properties(&self) -> FontRequest {
         self.self_weak.upgrade().unwrap().default_font_properties()
     }
+
+    fn release_graphics_resources(&self) {
+        // Release GL textures and other GPU bound resources.
+        self.with_current_context(|| {
+            self.graphics_cache.borrow_mut().clear();
+            self.texture_cache.borrow_mut().clear();
+
+            if let Some(callback) = self.rendering_notifier.borrow_mut().as_mut() {
+                callback.notify(RenderingState::RenderingTeardown)
+            }
+        });
+    }
 }
 
 impl WinitWindow for GLWindow {
@@ -127,7 +144,7 @@ impl WinitWindow for GLWindow {
     fn draw(self: Rc<Self>) {
         let runtime_window = self.self_weak.upgrade().unwrap();
         let scale_factor = runtime_window.scale_factor();
-        runtime_window.draw_contents(|components| {
+        runtime_window.clone().draw_contents(|components| {
             let window = match self.borrow_mapped_window() {
                 Some(window) => window,
                 None => return, // caller bug, doesn't make sense to call draw() when not mapped
@@ -137,6 +154,10 @@ impl WinitWindow for GLWindow {
 
             window.opengl_context.make_current();
             window.opengl_context.ensure_resized();
+
+            if let Some(callback) = self.rendering_notifier.borrow_mut().as_mut() {
+                callback.notify(RenderingState::BeforeRendering)
+            }
 
             {
                 let mut canvas = window.canvas.as_ref().unwrap().borrow_mut();
@@ -183,6 +204,10 @@ impl WinitWindow for GLWindow {
             renderer.graphics_window.texture_cache.borrow_mut().drain();
 
             drop(renderer);
+
+            if let Some(callback) = self.rendering_notifier.borrow_mut().as_mut() {
+                callback.notify(RenderingState::AfterRendering)
+            }
 
             window.opengl_context.swap_buffers();
             window.opengl_context.make_not_current();
@@ -256,6 +281,10 @@ impl PlatformWindow for GLWindow {
                 }
             }
         }
+    }
+
+    fn set_rendering_notifier(&self, callback: Box<dyn RenderingNotifier>) {
+        *self.rendering_notifier.borrow_mut() = Some(callback);
     }
 
     fn show_popup(&self, popup: &ComponentRc, position: Point) {
@@ -384,6 +413,10 @@ impl PlatformWindow for GLWindow {
         )
         .unwrap();
 
+        if let Some(callback) = self.rendering_notifier.borrow_mut().as_mut() {
+            callback.notify(RenderingState::RenderingSetup)
+        }
+
         opengl_context.make_not_current();
 
         let canvas = Rc::new(RefCell::new(canvas));
@@ -444,10 +477,7 @@ impl PlatformWindow for GLWindow {
 
     fn hide(self: Rc<Self>) {
         // Release GL textures and other GPU bound resources.
-        self.with_current_context(|| {
-            self.graphics_cache.borrow_mut().clear();
-            self.texture_cache.borrow_mut().clear();
-        });
+        self.release_graphics_resources();
 
         self.map_state.replace(GraphicsWindowBackendState::Unmapped);
         /* FIXME:
@@ -619,6 +649,12 @@ impl PlatformWindow for GLWindow {
 
     fn as_any(&self) -> &dyn std::any::Any {
         self
+    }
+}
+
+impl Drop for GLWindow {
+    fn drop(&mut self) {
+        self.release_graphics_resources();
     }
 }
 

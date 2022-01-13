@@ -1349,6 +1349,13 @@ impl PlatformWindow for QtWindow {
         }
     }
 
+    fn set_rendering_notifier(
+        &self,
+        _callback: Box<dyn sixtyfps_corelib::window::RenderingNotifier>,
+    ) {
+        unimplemented!()
+    }
+
     fn show_popup(&self, popup: &sixtyfps_corelib::component::ComponentRc, position: Point) {
         let window = sixtyfps_corelib::window::Window::new(|window| QtWindow::new(window));
         let popup_window: &QtWindow =

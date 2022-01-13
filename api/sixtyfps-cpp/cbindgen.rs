@@ -157,7 +157,8 @@ fn gen_corelib(
         "sixtyfps_color_darker",
         "sixtyfps_image_size",
         "sixtyfps_image_path",
-        "TimerMode", // included in generated_public.h
+        "RenderingState", // included in generated_public.h
+        "TimerMode",      // included in generated_public.h
     ]
     .iter()
     .map(|x| x.to_string())
@@ -261,6 +262,7 @@ fn gen_corelib(
             "sixtyfps_windowrc_set_focus_item",
             "sixtyfps_windowrc_set_component",
             "sixtyfps_windowrc_show_popup",
+            "sixtyfps_windowrc_set_rendering_notifier",
             "sixtyfps_new_path_elements",
             "sixtyfps_new_path_events",
             "sixtyfps_color_brighter",
@@ -308,12 +310,13 @@ fn gen_corelib(
     let mut public_config = config.clone();
     public_config.namespaces = Some(vec!["sixtyfps".into()]);
     public_config.export.item_types = vec![cbindgen::ItemType::Enums];
-    public_config.export.include = vec!["TimerMode".into()];
+    public_config.export.include = vec!["TimerMode".into(), "RenderingState".into()];
     public_config.export.exclude.clear();
 
     cbindgen::Builder::new()
         .with_config(public_config)
         .with_src(crate_dir.join("timers.rs"))
+        .with_src(crate_dir.join("window.rs"))
         .with_after_include(format!(
             r"
 /// This macro expands to the to the numeric value of the major version of SixtyFPS you're
