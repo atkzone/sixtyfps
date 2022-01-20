@@ -1,0 +1,31 @@
+// Copyright © SixtyFPS GmbH <info@sixtyfps.io>
+// SPDX-License-Identifier: (GPL-3.0-only OR LicenseRef-SixtyFPS-commercial)
+
+import { ScrollView, Button, CheckBox, SpinBox, Slider, GroupBox, LineEdit, StandardListView,
+    ComboBox, HorizontalBox, VerticalBox, GridBox, TabWidget, TextEdit, AboutSixtyFPS } from "sixtyfps_widgets.60";
+
+App := Window {
+    preferred-width: 500px;
+    preferred-height: 600px;
+    title: "SixtyFPS Gallery";
+    icon: @image-url("../../vscode_extension/extension-logo.png");
+
+    VerticalBox {
+        HorizontalBox {
+            Text {
+                text: "Below are some of the standard widgets that application developers can easily re-use.";
+                wrap: word-wrap;
+            }
+
+            VerticalLayout {
+                alignment: start;
+                disable-toggle := CheckBox {
+                    checked: false;
+                    text: "Disable Widgets";
+                }
+            }
+        }
+
+        Rectangle {}
+    }
+}
