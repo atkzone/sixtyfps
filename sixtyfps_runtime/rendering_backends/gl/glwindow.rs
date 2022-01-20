@@ -336,7 +336,8 @@ impl PlatformWindow for GLWindow {
 
         let window_builder = winit::window::WindowBuilder::new()
             .with_title(window_title)
-            .with_resizable(is_resizable);
+            .with_resizable(is_resizable)
+            .with_transparent(true);
 
         let scale_factor_override = std::env::var("SIXTYFPS_SCALE_FACTOR")
             .ok()
