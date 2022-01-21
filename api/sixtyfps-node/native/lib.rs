@@ -277,7 +277,7 @@ fn to_js_value<'cx>(
         )
         .as_value(cx),
         Value::Model(model) => {
-            // TODO: this sound probably create a proxy object instead of extracting the entire model.
+            // TODO: this should probably create a proxy object instead of extracting the entire model.
             let js_array = JsArray::new(cx, model.row_count() as _);
             for i in 0..model.row_count() {
                 let v = to_js_value(model.row_data(i), cx)?;
