@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Fixed
+
+ - Models initialized from arrays are now also mutable when run in the interpreter.
+
 ## [0.1.6] - 2022-01-21
 
 ### Changed

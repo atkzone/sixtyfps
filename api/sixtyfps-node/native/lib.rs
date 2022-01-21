@@ -276,6 +276,15 @@ fn to_js_value<'cx>(
             &format!("#{:02x}{:02x}{:02x}{:02x}", c.red(), c.green(), c.blue(), c.alpha()),
         )
         .as_value(cx),
+        Value::Model(model) => {
+            // TODO: this sound probably create a proxy object instead of extracting the entire model.
+            let js_array = JsArray::new(cx, model.row_count() as _);
+            for i in 0..model.row_count() {
+                let v = to_js_value(model.row_data(i), cx)?;
+                js_array.set(cx, i as u32, v)?;
+            }
+            js_array.as_value(cx)
+        }
         _ => todo!("converting {:?} to js has not been implemented", val),
     })
 }
